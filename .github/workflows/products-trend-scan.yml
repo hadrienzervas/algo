@@ -1,0 +1,37 @@
+name: Product Trend Scan
+
+on:
+  schedule:
+    # Runs every day at 8:00 UTC. Adjust the cron expression to your timezone.
+    # Cron format: minute hour day month weekday
+    - cron: "0 8 * * *"
+  workflow_dispatch: {}   # lets you also trigger it manually from the Actions tab
+
+permissions:
+  contents: write   # needed so the workflow can commit results back to the repo
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests pytrends
+
+      - name: Run trend scanner
+        run: python product_trend_scanner.py
+
+      - name: Commit results
+        run: |
+          git config user.name "trend-scanner-bot"
+          git config user.email "actions@github.com"
+          git add results/
+          git diff --quiet --cached || git commit -m "Trend scan results $(date -u +'%Y-%m-%d')"
+          git push
